@@ -326,12 +326,28 @@
         <h2 class="mt-5 text-2xl font-bold tracking-tight sm:text-4xl">まずは無料で試してください</h2>
         <p class="mt-5 leading-8 text-white/80">人数制限なし。1ヶ月間、すべての機能をお使いいただけます。</p>
 
+        <!-- 人数入力UI -->
+        <div class="mt-8 rounded-2xl bg-white/10 p-6 sm:p-8">
+          <label for="trialUsers" class="block text-lg font-bold">利用人数を入力してください</label>
+          <div class="mt-4 flex items-center gap-3">
+            <input id="trialUsers" type="number" min="1" max="500" value="10"
+              class="w-32 rounded-xl border-2 border-white/30 bg-white/10 px-4 py-3 text-center text-2xl font-bold text-white placeholder-white/50 focus:border-white focus:outline-none"
+              aria-label="利用人数">
+            <span class="text-lg text-white/80">名</span>
+          </div>
+          <div class="mt-4 rounded-xl bg-white/10 px-5 py-4">
+            <p class="text-sm text-white/70">トライアル終了後の月額（税抜）</p>
+            <p class="mt-1 text-3xl font-bold font-num" id="trialPrice">¥1,980</p>
+            <p class="mt-1 text-xs text-white/60" id="trialCalc">10名まで一律料金</p>
+          </div>
+        </div>
+
         <!-- 重要事項（特定商取引法2022年改正対応） -->
-        <div class="mt-8 rounded-xl border border-white/20 bg-white/10 p-6 text-left text-sm leading-7">
+        <div class="mt-6 rounded-xl border border-white/20 bg-white/10 p-6 text-left text-sm leading-7">
           <p class="font-bold text-white">【申し込み前に必ずご確認ください】</p>
           <ul class="mt-3 space-y-2 text-white/80">
             <li>・無料期間は申し込み日から<strong class="text-white">1ヶ月間</strong>です</li>
-            <li>・無料期間終了後は、ご利用人数に応じた料金が<strong class="text-white">自動的に課金</strong>されます（10名まで月額1,980円・税抜）</li>
+            <li>・無料期間終了後は、ご利用人数に応じた料金が<strong class="text-white">自動的に課金</strong>されます</li>
             <li>・解約しない限り毎月自動更新されます</li>
             <li>・解約は<strong class="text-white">月末（23:59）まで</strong>に手続きが必要です。月末を過ぎると翌月分の料金が発生します</li>
             <li>・クレジットカードの登録が必要です</li>
@@ -339,9 +355,12 @@
           </ul>
         </div>
 
-        <a href="https://your-stripe-checkout-url-here" class="mt-8 inline-flex items-center justify-center rounded-xl bg-white px-10 py-4 text-lg font-bold text-navy transition hover:bg-mist-200">
-          クレジットカードを登録して無料で始める
-        </a>
+        <button id="trialBtn" type="button"
+          class="mt-8 inline-flex items-center justify-center gap-3 rounded-xl bg-white px-10 py-4 text-lg font-bold text-navy transition hover:bg-mist-200 disabled:opacity-60">
+          <span id="trialBtnText">クレジットカードを登録して無料で始める</span>
+          <svg id="trialSpinner" class="hidden animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        </button>
+        <p id="trialError" class="hidden mt-3 text-sm font-semibold text-red-300" role="alert"></p>
         <p class="mt-4 text-xs text-white/60">上記の重要事項に同意の上お申し込みください</p>
       </div>
     </section>
@@ -635,6 +654,61 @@
         $('priceNote').textContent = extra ? '1,980円 ＋ ' + extra + '名 × 180円' : '10名までは一律 1,980円';
       }
       range.addEventListener('input', calc); calc();
+
+      /* --- Trial: 人数入力 + Stripe Checkout --- */
+      var trialUsers = $('trialUsers');
+      var trialPrice = $('trialPrice');
+      var trialCalc = $('trialCalc');
+      var trialBtn = $('trialBtn');
+      var trialBtnText = $('trialBtnText');
+      var trialSpinner = $('trialSpinner');
+      var trialError = $('trialError');
+
+      function calcTrialPrice() {
+        var n = parseInt(trialUsers.value, 10) || 1;
+        if (n < 1) n = 1;
+        if (n > 500) n = 500;
+        var extra = n > 10 ? (n - 10) * 180 : 0;
+        var total = 1980 + extra;
+        trialPrice.textContent = '¥' + total.toLocaleString('ja-JP');
+        trialCalc.textContent = n > 10
+          ? '1,980円 ＋ ' + (n - 10) + '名 × 180円'
+          : '10名まで一律料金';
+      }
+      trialUsers.addEventListener('input', calcTrialPrice);
+      calcTrialPrice();
+
+      trialBtn.addEventListener('click', async function () {
+        var n = parseInt(trialUsers.value, 10);
+        if (!n || n < 1 || n > 500) {
+          trialError.textContent = '利用人数は1〜500名の範囲で入力してください。';
+          trialError.classList.remove('hidden');
+          return;
+        }
+        trialError.classList.add('hidden');
+        trialBtn.disabled = true;
+        trialBtnText.textContent = '処理中...';
+        trialSpinner.classList.remove('hidden');
+        try {
+          var res = await fetch('/api/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ users: n })
+          });
+          var data = await res.json();
+          if (data.url) {
+            window.location.href = data.url;
+          } else {
+            throw new Error(data.error || 'エラーが発生しました');
+          }
+        } catch (err) {
+          trialError.textContent = err.message || '通信エラーが発生しました。時間をおいて再度お試しください。';
+          trialError.classList.remove('hidden');
+          trialBtn.disabled = false;
+          trialBtnText.textContent = 'クレジットカードを登録して無料で始める';
+          trialSpinner.classList.add('hidden');
+        }
+      });
 
       /* --- Contact form (static hosting: opens the visitor's mail app) --- */
       $('contactForm').addEventListener('submit', function (e) {
