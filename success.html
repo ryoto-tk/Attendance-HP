@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>お申し込み完了｜Attendance</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e2a55'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='white' stroke-width='2.5'/%3E%3Cpath d='M16 11v5l3.5 2' fill='none' stroke='%2312b886' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: { DEFAULT: '#0e2a55', 700: '#1b3f7a' },
+            punch: { DEFAULT: '#12b886', dark: '#0b8f68' },
+            mist: { DEFAULT: '#f5f8fc', 300: '#d9e2f1' }
+          },
+          fontFamily: {
+            sans: ['"Hiragino Sans"', '"Yu Gothic UI"', 'system-ui', 'sans-serif'],
+            num: ['ui-monospace', 'Menlo', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-mist font-sans min-h-screen flex flex-col items-center justify-center px-5">
+
+  <!-- Header -->
+  <a href="/" class="absolute top-6 left-6 flex items-center gap-2 font-bold text-navy">
+    <svg width="28" height="28" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#0e2a55"/><circle cx="16" cy="16" r="8" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M16 11v5l3.5 2" fill="none" stroke="#12b886" stroke-width="2.5" stroke-linecap="round"/></svg>
+    Attendance
+  </a>
+
+  <div class="w-full max-w-lg text-center">
+    <!-- Success icon -->
+    <div class="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-punch/10">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#12b886" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+    </div>
+
+    <h1 class="text-3xl font-bold text-navy sm:text-4xl">お申し込みありがとうございます！</h1>
+    <p class="mt-4 text-lg text-navy/70">1ヶ月間の無料トライアルが開始されました。</p>
+
+    <!-- Details card -->
+    <div class="mt-8 rounded-2xl bg-white p-6 text-left shadow-sm sm:p-8">
+      <h2 class="font-bold text-navy">お申し込み内容</h2>
+      <dl class="mt-4 divide-y divide-mist-300 text-sm">
+        <div class="flex justify-between py-3">
+          <dt class="text-navy/60">プラン</dt>
+          <dd class="font-semibold" id="planUsers">—</dd>
+        </div>
+        <div class="flex justify-between py-3">
+          <dt class="text-navy/60">無料トライアル期間</dt>
+          <dd class="font-semibold">1ヶ月間（30日）</dd>
+        </div>
+        <div class="flex justify-between py-3">
+          <dt class="text-navy/60">トライアル終了後の月額</dt>
+          <dd class="font-semibold font-num" id="planAmount">—</dd>
+        </div>
+        <div class="flex justify-between py-3">
+          <dt class="text-navy/60">解約期限</dt>
+          <dd class="font-semibold" id="cancelDate">—</dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Next steps -->
+    <div class="mt-6 rounded-2xl border border-punch/20 bg-punch/5 p-6 text-left sm:p-8">
+      <h2 class="font-bold text-navy">次のステップ</h2>
+      <ul class="mt-4 space-y-3 text-sm text-navy/80">
+        <li class="flex items-start gap-3">
+          <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-punch text-white text-xs font-bold">1</span>
+          登録いただいたメールアドレスにStripeから領収書が届きます
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-punch text-white text-xs font-bold">2</span>
+          <span>アカウント設定の詳細を <a href="mailto:attendance.support1@gmail.com" class="underline underline-offset-4">attendance.support1@gmail.com</a> からご案内します（2営業日以内）</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-punch text-white text-xs font-bold">3</span>
+          トライアル期間中にご不明な点はいつでもメールでお問い合わせください
+        </li>
+      </ul>
+    </div>
+
+    <!-- Warning -->
+    <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left text-sm text-amber-800">
+      <p class="font-semibold">⚠️ 解約についてのご注意</p>
+      <p class="mt-1">継続をご希望でない場合は、<strong>月末（23:59）まで</strong>に解約手続きをお願いします。月末を過ぎると翌月分の料金が発生します。</p>
+    </div>
+
+    <a href="/" class="mt-8 inline-flex items-center justify-center rounded-lg bg-navy px-8 py-4 font-semibold text-white transition hover:bg-navy-700">
+      トップページに戻る
+    </a>
+  </div>
+
+  <script>
+    // URLパラメータから情報を取得
+    const params = new URLSearchParams(location.search);
+    const users = parseInt(params.get('users') || '0', 10);
+    const amount = parseInt(params.get('amount') || '0', 10);
+
+    if (users) {
+      document.getElementById('planUsers').textContent = users + '名プラン';
+      document.getElementById('planAmount').textContent = amount.toLocaleString('ja-JP') + '円（税抜）/ 月';
+
+      // 解約期限（今日から30日後の月末）
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + 30);
+      const cancelDeadline = new Date(trialEnd.getFullYear(), trialEnd.getMonth() + 1, 0); // 月末
+      document.getElementById('cancelDate').textContent =
+        cancelDeadline.getFullYear() + '年' +
+        (cancelDeadline.getMonth() + 1) + '月' +
+        cancelDeadline.getDate() + '日（23:59）まで';
+    }
+  </script>
+</body>
+</html>
