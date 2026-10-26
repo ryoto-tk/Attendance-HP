@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /success.html
+Disallow: /api/
+
+Sitemap: https://www.attendance1.com/sitemap.xml
