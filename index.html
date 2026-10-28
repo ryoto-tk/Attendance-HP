@@ -71,6 +71,14 @@
       .chev { transition: none; }
     }
   </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YPLMQ7D3Z9"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-YPLMQ7D3Z9');
+  </script>
 </head>
 
 <body class="bg-white font-sans text-navy antialiased">
@@ -397,6 +405,66 @@
       </div>
     </section>
 
+    <!-- ===== 紹介プログラム ===== -->
+    <section class="bg-navy py-16 sm:py-20">
+      <div class="mx-auto max-w-6xl px-5">
+        <div class="grid gap-10 md:grid-cols-2 md:items-center">
+          <div class="text-white">
+            <p class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold">
+              <span aria-hidden="true">🎁</span> 紹介プログラム
+            </p>
+            <h2 class="mt-5 text-2xl font-bold tracking-tight sm:text-4xl">
+              紹介するたびに、<br>翌月が無料に。
+            </h2>
+            <p class="mt-5 leading-8 text-white/80">
+              Attendanceを気に入ったら、お知り合いの会社に紹介してください。紹介した相手が申し込んだ翌月、あなたの利用料が1ヶ月分無料になります。紹介件数に上限はありません。
+            </p>
+            <ul class="mt-6 space-y-3 text-sm text-white/80">
+              <li class="flex items-center gap-3">
+                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-punch text-white text-xs font-bold">1</span>
+                お知り合いの会社にAttendanceを紹介する
+              </li>
+              <li class="flex items-center gap-3">
+                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-punch text-white text-xs font-bold">2</span>
+                相手が申し込む際に「紹介者のメールアドレス」を入力してもらう
+              </li>
+              <li class="flex items-center gap-3">
+                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-punch text-white text-xs font-bold">3</span>
+                翌月分の利用料が無料になるクーポンをメールでお送りします
+              </li>
+            </ul>
+          </div>
+
+          <!-- 紹介メール文テンプレート -->
+          <div class="rounded-2xl bg-white/10 p-6 sm:p-8">
+            <p class="text-sm font-bold text-white">📧 紹介メール文テンプレート（コピーして使えます）</p>
+            <div id="referralTemplate" class="mt-4 rounded-xl bg-white/10 p-4 text-sm leading-7 text-white/90 whitespace-pre-wrap">件名：勤怠管理ツールのご紹介
+
+お世話になっております。
+
+勤怠管理に「Attendance」というサービスを使い始めました。
+打刻・シフト・有給・残業申請がスマホ1台で完結するので、
+エクセルやタイムカードの手間がなくなりました。
+
+10名まで月額1,980円で、1ヶ月無料で試せます。
+
+▼ サービスサイト
+https://www.attendance1.com/
+
+申し込みの際は、紹介者のメールアドレス欄に
+「attendance.support1@gmail.com」と入力してください。
+
+よろしければぜひ試してみてください。</div>
+            <button id="copyReferral" type="button"
+              class="mt-4 w-full rounded-lg bg-white px-4 py-3 text-sm font-bold text-navy transition hover:bg-mist-200">
+              📋 テキストをコピーする
+            </button>
+            <p id="copyDone" class="hidden mt-2 text-center text-xs text-punch">コピーしました！</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== Contact ===== -->
     <section id="contact" class="bg-mist py-16 sm:py-24">
       <div class="mx-auto max-w-2xl px-5">
@@ -426,6 +494,10 @@
           <div>
             <label for="company" class="mb-1.5 block text-sm font-semibold">会社名 <span class="text-red-600" aria-hidden="true">*</span></label>
             <input id="company" name="company" type="text" required autocomplete="organization" class="w-full rounded-lg border border-mist-300 px-4 py-3 text-base focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20">
+          </div>
+          <div>
+            <label for="referrer" class="mb-1.5 block text-sm font-semibold">紹介者のメールアドレス <span class="text-navy/50 font-normal text-xs">（紹介プログラム利用時のみ）</span></label>
+            <input id="referrer" name="referrer" type="email" autocomplete="off" placeholder="例：referrer@example.com" class="w-full rounded-lg border border-mist-300 px-4 py-3 text-base focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20">
           </div>
           <div>
             <label for="message" class="mb-1.5 block text-sm font-semibold">Message</label>
@@ -642,6 +714,28 @@
       $('phoneWrap').addEventListener('mouseleave', start);
       go(0);
 
+      /* --- 紹介プログラム: テキストコピー --- */
+      var copyBtn = $('copyReferral');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function () {
+          var text = $('referralTemplate').textContent.trim();
+          navigator.clipboard.writeText(text).then(function () {
+            $('copyDone').classList.remove('hidden');
+            setTimeout(function () { $('copyDone').classList.add('hidden'); }, 2500);
+          }).catch(function () {
+            // フォールバック
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            $('copyDone').classList.remove('hidden');
+            setTimeout(function () { $('copyDone').classList.add('hidden'); }, 2500);
+          });
+        });
+      }
+
       /* --- Pricing simulator: ≤10名 1,980円 / 11名〜 +180円/名 --- */
       var range = $('userRange');
       function yen(n) { return n.toLocaleString('ja-JP') + '円'; }
@@ -690,6 +784,14 @@
         trialBtnText.textContent = '処理中...';
         trialSpinner.classList.remove('hidden');
         try {
+          // GA4イベント送信
+          if (typeof gtag !== 'undefined') {
+            gtag('event', 'begin_checkout', {
+              currency: 'JPY',
+              value: 1980 + (n > 10 ? (n - 10) * 180 : 0),
+              items: [{ item_name: 'Attendance月額プラン', quantity: n }]
+            });
+          }
           var res = await fetch('/api/checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -730,6 +832,9 @@
           '',
           f.message.value
         ].join('\n');
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'generate_lead', { method: 'contact_form' });
+        }
         window.location.href = 'mailto:attendance.support1@gmail.com?subject=' +
           encodeURIComponent('【Attendance】お問い合わせ（' + f.company.value + '）') +
           '&body=' + encodeURIComponent(body);
