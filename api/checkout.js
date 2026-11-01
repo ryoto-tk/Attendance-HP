@@ -1,7 +1,6 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 module.exports = async (req, res) => {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', 'https://www.attendance1.com');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -9,22 +8,26 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { users } = req.body;
+    const { users, referrer } = req.body;
     const n = parseInt(users, 10);
 
-    // バリデーション
     if (!n || n < 1 || n > 500) {
       return res.status(400).json({ error: '利用人数は1〜500名の範囲で入力してください。' });
     }
 
-    // 料金計算
-    // 10名まで：1,980円固定
-    // 11名以上：1,980円 + (n - 10) × 180円
     const basePrice = 1980;
     const extraPrice = n > 10 ? (n - 10) * 180 : 0;
     const totalPrice = basePrice + extraPrice;
 
-    // Stripe Checkout セッション作成
+    // メタデータに紹介者メールを含める
+    const metadata = {
+      users: String(n),
+      plan: n > 10 ? 'standard' : 'basic',
+    };
+    if (referrer && referrer.includes('@')) {
+      metadata.referrer_email = referrer.trim().toLowerCase();
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -32,9 +35,6 @@ module.exports = async (req, res) => {
         {
           price_data: {
             currency: 'jpy',
-            product: process.env.STRIPE_PRICE_ID.startsWith('price_')
-              ? undefined
-              : undefined,
             recurring: { interval: 'month' },
             unit_amount: totalPrice,
             product_data: {
@@ -48,16 +48,11 @@ module.exports = async (req, res) => {
         },
       ],
       subscription_data: {
-        trial_period_days: 30, // 1ヶ月無料トライアル
-        metadata: {
-          users: String(n),
-          plan: n > 10 ? 'standard' : 'basic',
-        },
+        trial_period_days: 30,
+        metadata,
       },
-      metadata: {
-        users: String(n),
-      },
-      success_url: 'https://www.attendance1.com/success.html?users=' + n + '&amount=' + totalPrice,
+      metadata,
+      success_url: `https://www.attendance1.com/success.html?users=${n}&amount=${totalPrice}`,
       cancel_url: 'https://www.attendance1.com/#trial',
       locale: 'ja',
     });
@@ -66,6 +61,6 @@ module.exports = async (req, res) => {
 
   } catch (err) {
     console.error('Stripe error:', err.message);
-    return res.status(500).json({ error: '決済の準備中にエラーが発生しました。しばらく時間をおいてお試しください。' });
+    return res.status(500).json({ error: '決済の準備中にエラーが発生しました。しばらく時間をおいて再度お試しください。' });
   }
 };
