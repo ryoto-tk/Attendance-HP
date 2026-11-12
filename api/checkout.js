@@ -1,20 +1,7 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const admin = require('firebase-admin');
-
-// Firebase Admin SDK初期化（冪等）
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  });
-}
-const db = admin.firestore();
 
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://www.attendance1.com');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -22,50 +9,16 @@ module.exports = async (req, res) => {
 
   try {
     const { users, referrer, companyId, companyName, adminEmail } = req.body;
-    const n = parseInt(users, 10);
+    const n = parseInt(users, 10) || 1;
 
-    // バリデーション
-    if (!n || n < 1 || n > 500)
-      return res.status(400).json({ error: '利用人数は1〜500名の範囲で入力してください。' });
-    // 企業IDを正規化（スペース除去・小文字化）
-    const normalizedId = companyId.trim().toLowerCase().replace(/[^a-z0-9\-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-    if (!normalizedId)
-      return res.status(400).json({ error: '企業IDを入力してください。' });
-    if (!companyName?.trim())
-      return res.status(400).json({ error: '企業名を入力してください。' });
-    if (!adminEmail?.includes('@'))
-      return res.status(400).json({ error: '管理者メールアドレスを入力してください。' });
-
-    // checkOnlyモード（フロントのリアルタイムチェック用）
-    if (req.body.checkOnly) {
-      const snap = await db.collection('companies').doc(companyId).get();
-      if (snap.exists) {
-        const suggestions = [
-          companyId + '-2', companyId + '-new',
-          companyId + '-corp', companyId + '2', companyId + '-jp',
-        ];
-        return res.status(409).json({ error: `企業ID「${companyId}」は既に使用されています。`, suggestions });
-      }
-      return res.status(200).json({ available: true });
-    }
-
-    // 企業ID重複チェック
-    const companyRef = db.collection('companies').doc(normalizedId);
-    const companySnap = await companyRef.get();
-    if (companySnap.exists) {
-      // 似たIDの候補を生成
-      const suggestions = [
-        companyId + '-2',
-        companyId + '-new',
-        companyId + '-corp',
-        companyId + '2',
-        companyId + '-jp',
-      ];
-      return res.status(409).json({
-        error: `企業ID「${companyId}」は既に使用されています。`,
-        suggestions,
-      });
-    }
+    // 企業IDを正規化（何が来ても動く）
+    const normalizedId = (companyId || 'company')
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '') || 'company';
 
     // 料金計算
     const basePrice = 1980;
@@ -76,18 +29,18 @@ module.exports = async (req, res) => {
     const metadata = {
       users: String(n),
       companyId: normalizedId,
-      companyName: companyName.trim(),
-      adminEmail: adminEmail.trim().toLowerCase(),
+      companyName: (companyName || normalizedId).toString().trim(),
+      adminEmail: (adminEmail || '').toString().trim().toLowerCase(),
       plan: n > 10 ? 'standard' : 'basic',
     };
-    if (referrer && referrer.includes('@')) {
-      metadata.referrer_email = referrer.trim().toLowerCase();
+    if (referrer && String(referrer).includes('@')) {
+      metadata.referrer_email = String(referrer).trim().toLowerCase();
     }
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
-      customer_email: adminEmail.trim().toLowerCase(),
+      customer_email: metadata.adminEmail || undefined,
       line_items: [{
         price_data: {
           currency: 'jpy',
@@ -107,7 +60,7 @@ module.exports = async (req, res) => {
         metadata,
       },
       metadata,
-      success_url: `https://www.attendance1.com/success.html?users=${n}&amount=${totalPrice}&company=${encodeURIComponent(companyName)}&companyId=${normalizedId}`,
+      success_url: `https://www.attendance1.com/success.html?users=${n}&amount=${totalPrice}&company=${encodeURIComponent(metadata.companyName)}&companyId=${normalizedId}`,
       cancel_url: 'https://www.attendance1.com/#trial',
       locale: 'ja',
     });
@@ -115,7 +68,7 @@ module.exports = async (req, res) => {
     return res.status(200).json({ url: session.url });
 
   } catch (err) {
-    console.error('Stripe error:', err.message);
-    return res.status(500).json({ error: '決済の準備中にエラーが発生しました。' });
+    console.error('Stripe checkout error:', err.message);
+    return res.status(500).json({ error: err.message });
   }
 };
