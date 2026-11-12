@@ -349,11 +349,11 @@
           <div>
             <label for="trialCompanyId" class="block text-sm font-bold text-white/90">
               企業ID <span class="text-red-300">*</span>
-              <span class="ml-2 text-xs font-normal text-white/60">小文字英数字・ハイフンのみ（例：yamada-corp）</span>
+              <span class="ml-2 text-xs font-normal text-white/60">英数字推奨（例：yamada-corp）。他の文字は自動変換されます</span>
             </label>
             <input id="trialCompanyId" type="text" placeholder="yamada-corp" autocomplete="off"
               class="mt-2 w-full rounded-xl border-2 border-white/30 bg-white/10 px-4 py-3 text-white placeholder-white/40 focus:border-white focus:outline-none font-mono"
-              pattern="[a-z0-9\-]+" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9\-]/g,'')">
+              pattern="[a-z0-9\-]+" oninput="if(!/^[a-z0-9-]*$/.test(this.value)){this.style.borderColor='#f59e0b';}else{this.style.borderColor=''}">
             <!-- 重複チェック結果 -->
             <div id="companyIdFeedback" class="mt-2 hidden">
               <p id="companyIdError" class="hidden text-sm text-red-300 font-semibold"></p>
