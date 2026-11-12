@@ -27,8 +27,10 @@ module.exports = async (req, res) => {
     // バリデーション
     if (!n || n < 1 || n > 500)
       return res.status(400).json({ error: '利用人数は1〜500名の範囲で入力してください。' });
-    if (!companyId || !/^[a-z0-9\-]+$/.test(companyId))
-      return res.status(400).json({ error: '企業IDは小文字英数字・ハイフンのみです。' });
+    // 企業IDを正規化（スペース除去・小文字化）
+    const normalizedId = companyId.trim().toLowerCase().replace(/[^a-z0-9\-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    if (!normalizedId)
+      return res.status(400).json({ error: '企業IDを入力してください。' });
     if (!companyName?.trim())
       return res.status(400).json({ error: '企業名を入力してください。' });
     if (!adminEmail?.includes('@'))
@@ -48,7 +50,7 @@ module.exports = async (req, res) => {
     }
 
     // 企業ID重複チェック
-    const companyRef = db.collection('companies').doc(companyId);
+    const companyRef = db.collection('companies').doc(normalizedId);
     const companySnap = await companyRef.get();
     if (companySnap.exists) {
       // 似たIDの候補を生成
@@ -73,7 +75,7 @@ module.exports = async (req, res) => {
     // metadata
     const metadata = {
       users: String(n),
-      companyId,
+      companyId: normalizedId,
       companyName: companyName.trim(),
       adminEmail: adminEmail.trim().toLowerCase(),
       plan: n > 10 ? 'standard' : 'basic',
@@ -105,7 +107,7 @@ module.exports = async (req, res) => {
         metadata,
       },
       metadata,
-      success_url: `https://www.attendance1.com/success.html?users=${n}&amount=${totalPrice}&company=${encodeURIComponent(companyName)}`,
+      success_url: `https://www.attendance1.com/success.html?users=${n}&amount=${totalPrice}&company=${encodeURIComponent(companyName)}&companyId=${normalizedId}`,
       cancel_url: 'https://www.attendance1.com/#trial',
       locale: 'ja',
     });
