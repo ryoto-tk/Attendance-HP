@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>利用登録 | Attendance</title>
+<style>
+  :root {
+    --navy: #1B2A4A;
+    --navy-mid: #2D4066;
+    --teal: #00B4D8;
+    --teal-light: #E8F9FD;
+    --green: #2EC4B6;
+    --red: #E53E3E;
+    --text: #2D3748;
+    --text-muted: #718096;
+    --border: #E2E8F0;
+    --bg: #F7FAFC;
+    --white: #ffffff;
+    --radius: 12px;
+    --shadow: 0 2px 12px rgba(27,42,74,.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── ヘッダー ── */
+  header {
+    background: var(--navy);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-logo {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    color: var(--teal);
+  }
+  .header-title {
+    font-size: 14px;
+    color: rgba(255,255,255,.7);
+    font-weight: 400;
+  }
+
+  /* ── メインレイアウト ── */
+  .main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 16px 64px;
+  }
+
+  /* ── ステッパー ── */
+  .stepper {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    margin-bottom: 36px;
+    counter-reset: step;
+  }
+  .step-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .step-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 16px;
+    left: calc(50% + 16px);
+    right: calc(-50% + 16px);
+    height: 2px;
+    background: var(--border);
+    transition: background .3s;
+  }
+  .step-item.done:not(:last-child)::after { background: var(--teal); }
+
+  .step-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    transition: all .3s;
+    position: relative;
+    z-index: 1;
+  }
+  .step-item.active .step-circle {
+    border-color: var(--teal);
+    background: var(--teal);
+    color: white;
+  }
+  .step-item.done .step-circle {
+    border-color: var(--teal);
+    background: var(--teal);
+    color: white;
+    font-size: 0;
+  }
+  .step-item.done .step-circle::after {
+    content: '✓';
+    font-size: 14px;
+  }
+  .step-label {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+  .step-item.active .step-label { color: var(--navy); font-weight: 700; }
+  .step-item.done .step-label { color: var(--teal); }
+
+  /* ── カード ── */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 32px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--navy);
+    margin-bottom: 4px;
+  }
+  .card-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+
+  /* ── フォーム ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 13px; font-weight: 600; color: var(--navy); }
+  label .required {
+    color: var(--red);
+    margin-left: 4px;
+    font-size: 11px;
+  }
+  input, select {
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--white);
+    transition: border-color .2s;
+    font-family: inherit;
+    width: 100%;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(0,180,216,.1);
+  }
+  input.readonly { background: var(--bg); color: var(--text-muted); cursor: not-allowed; }
+  .hint { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+  .error-msg { font-size: 12px; color: var(--red); display: none; }
+  .error-msg.show { display: block; }
+
+  /* ── 従業員テーブル ── */
+  .employee-table-wrap { overflow-x: auto; margin-top: 16px; }
+  .employee-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 500px;
+  }
+  .employee-table th {
+    background: var(--navy);
+    color: white;
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .employee-table th:first-child { border-radius: 8px 0 0 0; }
+  .employee-table th:last-child { border-radius: 0 8px 0 0; }
+  .employee-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .employee-table tr:hover td { background: var(--teal-light); }
+  .employee-table input {
+    padding: 6px 10px;
+    font-size: 13px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+  }
+  .employee-table td:last-child { text-align: center; }
+
+  .btn-row-add, .btn-row-del {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 6px;
+    transition: background .15s;
+  }
+  .btn-row-add { color: var(--teal); }
+  .btn-row-del { color: var(--text-muted); }
+  .btn-row-add:hover { background: var(--teal-light); }
+  .btn-row-del:hover { background: #FFF5F5; color: var(--red); }
+
+  /* CSV */
+  .csv-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .csv-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  .csv-label:hover { border-color: var(--teal); }
+  #csvFile { display: none; }
+  .csv-status { font-size: 12px; color: var(--text-muted); }
+
+  /* ── ボタン ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 13px 28px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all .2s;
+    font-family: inherit;
+  }
+  .btn-primary {
+    background: var(--teal);
+    color: white;
+    width: 100%;
+  }
+  .btn-primary:hover:not(:disabled) { background: #0099bb; }
+  .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+  .btn-secondary {
+    background: var(--white);
+    color: var(--navy);
+    border: 1.5px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--navy); }
+
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  /* ── スピナー ── */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── アラート ── */
+  .alert {
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+    display: none;
+    margin-bottom: 16px;
+  }
+  .alert.show { display: block; }
+  .alert-info { background: var(--teal-light); border-left: 3px solid var(--teal); color: #0369a1; }
+  .alert-error { background: #FFF5F5; border-left: 3px solid var(--red); color: var(--red); }
+  .alert-success { background: #F0FDF4; border-left: 3px solid #22c55e; color: #15803d; }
+
+  /* ── 完了画面 ── */
+  .complete-screen {
+    text-align: center;
+    padding: 48px 32px;
+  }
+  .complete-icon {
+    width: 72px; height: 72px;
+    background: linear-gradient(135deg, var(--teal), var(--green));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 24px;
+  }
+  .complete-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--navy);
+    margin-bottom: 12px;
+  }
+  .complete-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.8;
+    margin-bottom: 32px;
+  }
+  .info-box {
+    background: var(--navy);
+    border-radius: 12px;
+    padding: 20px 24px;
+    text-align: left;
+    margin-bottom: 24px;
+  }
+  .info-box-label { font-size: 11px; color: rgba(255,255,255,.5); font-weight: 700; letter-spacing: .08em; margin-bottom: 4px; }
+  .info-box-value { font-size: 22px; font-weight: 800; color: var(--teal); font-family: monospace; }
+  .info-box-links { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .info-box-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(255,255,255,.07);
+    border-radius: 8px;
+    font-size: 13px;
+    color: rgba(255,255,255,.8);
+    text-decoration: none;
+  }
+  .info-box-link:hover { background: rgba(255,255,255,.12); }
+  .info-box-link span { color: var(--teal); font-size: 12px; }
+
+  /* ── エラー / ロード画面 ── */
+  #loadingScreen, #errorScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 16px; }
+  .loading-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--teal);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .card { padding: 20px; }
+    .btn-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="header-logo">ATTENDANCE</div>
+    <div class="header-title">利用登録</div>
+  </div>
+</header>
+
+<!-- ローディング -->
+<div id="loadingScreen">
+  <div class="loading-spinner"></div>
+  <p style="color:var(--text-muted);font-size:14px;">確認中...</p>
+</div>
+
+<!-- エラー画面 -->
+<div id="errorScreen" style="display:none;">
+  <div style="font-size:48px;">⚠️</div>
+  <h2 style="color:var(--navy);font-size:20px;">URLが無効です</h2>
+  <p style="color:var(--text-muted);font-size:14px;text-align:center;line-height:1.8;">
+    このリンクは無効または期限切れです。<br>
+    お手数ですが、登録メールをご確認ください。
+  </p>
+  <a href="mailto:attendance.support1@gmail.com"
+     style="display:inline-block;margin-top:8px;padding:12px 24px;background:var(--teal);color:white;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">
+    サポートに問い合わせる
+  </a>
+</div>
+
+<!-- メインコンテンツ -->
+<div id="mainContent" class="main" style="display:none;">
+
+  <!-- ステッパー -->
+  <div class="stepper" id="stepper">
+    <div class="step-item active" id="step1">
+      <div class="step-circle">1</div>
+      <div class="step-label">企業・管理者<br>情報</div>
+    </div>
+    <div class="step-item" id="step2">
+      <div class="step-circle">2</div>
+      <div class="step-label">従業員<br>登録</div>
+    </div>
+    <div class="step-item" id="step3">
+      <div class="step-circle">3</div>
+      <div class="step-label">確認・<br>完了</div>
+    </div>
+  </div>
+
+  <!-- STEP 1: 企業・管理者情報 -->
+  <div id="panelStep1">
+    <div class="card">
+      <div class="card-title">企業・管理者情報</div>
+      <div class="card-subtitle">お申し込み時の内容を確認・補完してください。</div>
+
+      <div class="alert alert-info show" id="prefilledAlert">
+        📋 お申し込み時の情報を自動入力しました。内容を確認してください。
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>企業ID <span class="required">※変更不可</span></label>
+          <input type="text" id="companyId" class="readonly" readonly>
+          <span class="hint">ログイン時に使用します。変更はできません。</span>
+        </div>
+        <div class="form-group full">
+          <label>企業名 <span class="required">*</span></label>
+          <input type="text" id="companyName" placeholder="例：株式会社サンプル">
+          <span class="error-msg" id="errCompanyName">企業名を入力してください</span>
+        </div>
+        <div class="form-group">
+          <label>業種</label>
+          <select id="industry">
+            <option value="">選択してください</option>
+            <option value="retail">小売・販売</option>
+            <option value="restaurant">飲食・フード</option>
+            <option value="service">サービス業</option>
+            <option value="manufacturing">製造・工場</option>
+            <option value="logistics">物流・運送</option>
+            <option value="healthcare">医療・介護</option>
+            <option value="education">教育・研修</option>
+            <option value="it">IT・テクノロジー</option>
+            <option value="construction">建設・不動産</option>
+            <option value="other">その他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>従業員数（予定）</label>
+          <input type="number" id="employeeCount" placeholder="例：15" min="1" max="9999">
+        </div>
+        <div class="form-group full">
+          <label>管理者氏名 <span class="required">*</span></label>
+          <input type="text" id="adminName" placeholder="例：山田 太郎">
+          <span class="error-msg" id="errAdminName">管理者氏名を入力してください</span>
+        </div>
+        <div class="form-group full">
+          <label>管理者メールアドレス <span class="required">※変更不可</span></label>
+          <input type="email" id="adminEmail" class="readonly" readonly>
+          <span class="hint">ログインに使用します。変更が必要な場合はサポートへご連絡ください。</span>
+        </div>
+        <div class="form-group">
+          <label>管理者パスワード <span class="required">*</span></label>
+          <input type="password" id="adminPassword" placeholder="8文字以上" minlength="8">
+          <span class="error-msg" id="errPassword">8文字以上で入力してください</span>
+        </div>
+        <div class="form-group">
+          <label>パスワード（確認） <span class="required">*</span></label>
+          <input type="password" id="adminPasswordConfirm" placeholder="もう一度入力">
+          <span class="error-msg" id="errPasswordConfirm">パスワードが一致しません</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goStep2()">
+        次へ：従業員登録 →
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 2: 従業員登録 -->
+  <div id="panelStep2" style="display:none;">
+    <div class="card">
+      <div class="card-title">従業員登録</div>
+      <div class="card-subtitle">
+        従業員情報を登録してください。後から管理画面でも追加できます。
+        最低1名の登録が必要です。
+      </div>
+
+      <!-- CSV読み込み -->
+      <div style="background:var(--bg);border-radius:10px;padding:16px;margin-bottom:20px;">
+        <p style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px;">📄 CSVで一括インポート</p>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+          形式：<code style="background:var(--border);padding:2px 6px;border-radius:4px;font-size:11px;">名前,役割(admin/employee),メールアドレス</code>
+        </p>
+        <div class="csv-area">
+          <label class="csv-label" for="csvFile">📂 CSVを選択</label>
+          <input type="file" id="csvFile" accept=".csv">
+          <span class="csv-status" id="csvStatus">ファイルが選択されていません</span>
+        </div>
+      </div>
+
+      <div class="employee-table-wrap">
+        <table class="employee-table">
+          <thead>
+            <tr>
+              <th style="width:36px;">#</th>
+              <th>氏名 <span style="color:#f97316;">*</span></th>
+              <th>役割</th>
+              <th>メールアドレス</th>
+              <th style="width:48px;"></th>
+            </tr>
+          </thead>
+          <tbody id="employeeTableBody"></tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:12px;">
+        <button class="btn btn-secondary btn-row-add" onclick="addEmployeeRow()" style="font-size:14px;padding:8px 16px;border-radius:8px;">
+          ＋ 従業員を追加
+        </button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" style="flex:1" onclick="goStep1()">← 戻る</button>
+      <button class="btn btn-primary" style="flex:2" onclick="goStep3()">
+        次へ：内容確認 →
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 3: 確認・登録 -->
+  <div id="panelStep3" style="display:none;">
+    <div class="card">
+      <div class="card-title">登録内容の確認</div>
+      <div class="card-subtitle">以下の内容で登録します。よろしければ「登録を完了する」を押してください。</div>
+
+      <div id="confirmContent"></div>
+    </div>
+
+    <div class="alert alert-error" id="submitError"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" style="flex:1" onclick="goStep2()">← 戻る</button>
+      <button class="btn btn-primary" style="flex:2" id="submitBtn" onclick="submitRegistration()">
+        <div class="spinner" id="submitSpinner"></div>
+        <span id="submitLabel">登録を完了する</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 完了 -->
+  <div id="panelComplete" style="display:none;">
+    <div class="card complete-screen">
+      <div class="complete-icon">✓</div>
+      <div class="complete-title">登録完了！</div>
+      <div class="complete-desc">
+        利用登録が完了しました。<br>
+        以下のリンクからすぐにご利用を開始できます。
+      </div>
+
+      <div class="info-box">
+        <div class="info-box-label">企業ID</div>
+        <div class="info-box-value" id="completeCompanyId">-</div>
+        <div class="info-box-links">
+          <a class="info-box-link" href="https://attendance-three-rose.vercel.app/index.html" target="_blank">
+            管理者ダッシュボード <span>開く →</span>
+          </a>
+          <a class="info-box-link" href="https://attendance-three-rose.vercel.app/about.html" target="_blank">
+            従業員打刻アプリ <span>開く →</span>
+          </a>
+        </div>
+      </div>
+
+      <p style="font-size:13px;color:var(--text-muted);line-height:1.8;">
+        登録完了メールを <strong id="completeEmail">-</strong> に送信しました。<br>
+        ご不明な点は <a href="mailto:attendance.support1@gmail.com" style="color:var(--teal);">attendance.support1@gmail.com</a> までご連絡ください。
+      </p>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, doc, getDoc, setDoc, collection, addDoc, serverTimestamp, updateDoc }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getAuth, createUserWithEmailAndPassword }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+// ── Firebase 設定（環境に合わせて変更） ──
+const firebaseConfig = {
+  apiKey:            window.__FB_API_KEY__            || 'YOUR_API_KEY',
+  authDomain:        window.__FB_AUTH_DOMAIN__        || 'YOUR_AUTH_DOMAIN',
+  projectId:         window.__FB_PROJECT_ID__         || 'YOUR_PROJECT_ID',
+  storageBucket:     window.__FB_STORAGE_BUCKET__     || 'YOUR_STORAGE_BUCKET',
+  messagingSenderId: window.__FB_MESSAGING_SENDER_ID__|| 'YOUR_MESSAGING_SENDER_ID',
+  appId:             window.__FB_APP_ID__             || 'YOUR_APP_ID',
+};
+
+const app  = initializeApp(firebaseConfig);
+const db   = getFirestore(app);
+const auth = getAuth(app);
+
+// ── グローバル状態 ──
+let customerData = null;   // saasCustomers からのデータ
+let employeeRows = [];     // 従業員リスト
+
+// ── URLトークン検証 ──
+async function verifyToken() {
+  const params = new URLSearchParams(location.search);
+  const token  = params.get('token');
+
+  if (!token) { showError(); return; }
+
+  try {
+    // saasCustomers コレクションからトークンで検索
+    const { query, collection: col, where, getDocs }
+      = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const q = query(col(db, 'saasCustomers'), where('onboardingToken', '==', token));
+    const snap = await getDocs(q);
+
+    if (snap.empty) { showError(); return; }
+
+    const docSnap = snap.docs[0];
+    customerData  = { id: docSnap.id, ...docSnap.data() };
+
+    // 登録済みなら完了画面へ
+    if (customerData.onboardingStatus === 'completed') {
+      document.getElementById('loadingScreen').style.display = 'none';
+      document.getElementById('mainContent').style.display   = 'block';
+      showComplete();
+      return;
+    }
+
+    prefillForm();
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('mainContent').style.display   = 'block';
+
+  } catch (e) {
+    console.error(e);
+    showError();
+  }
+}
+
+function showError() {
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('errorScreen').style.display   = 'flex';
+}
+
+function prefillForm() {
+  document.getElementById('companyId').value   = customerData.customerId || customerData.id || '';
+  document.getElementById('companyName').value = customerData.company    || '';
+  document.getElementById('adminEmail').value  = customerData.email      || '';
+}
+
+// ── ステップ管理 ──
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById(`step${i}`);
+    el.classList.remove('active','done');
+    if (i < n)  el.classList.add('done');
+    if (i === n) el.classList.add('active');
+    document.getElementById(`panelStep${i}`).style.display = i === n ? '' : 'none';
+  });
+  document.getElementById('panelComplete').style.display = 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── STEP 1 バリデーション ──
+window.goStep2 = function() {
+  let ok = true;
+  const show = (id, cond) => {
+    document.getElementById(id).classList.toggle('show', !cond);
+    if (!cond) ok = false;
+  };
+  show('errCompanyName',     !!document.getElementById('companyName').value.trim());
+  show('errAdminName',       !!document.getElementById('adminName').value.trim());
+  const pw  = document.getElementById('adminPassword').value;
+  const pw2 = document.getElementById('adminPasswordConfirm').value;
+  show('errPassword',        pw.length >= 8);
+  show('errPasswordConfirm', pw === pw2 && pw2.length > 0);
+  if (!ok) return;
+
+  // 管理者を最初の従業員として追加（まだなければ）
+  if (employeeRows.length === 0) {
+    addEmployeeRow({
+      name:  document.getElementById('adminName').value.trim(),
+      role:  'admin',
+      email: document.getElementById('adminEmail').value.trim(),
+    });
+  }
+  renderEmployeeTable();
+  setStep(2);
+};
+
+window.goStep1 = () => setStep(1);
+
+// ── STEP 2: 従業員テーブル ──
+window.addEmployeeRow = function(data = {}) {
+  employeeRows.push({ name: data.name||'', role: data.role||'employee', email: data.email||'' });
+  renderEmployeeTable();
+};
+
+function renderEmployeeTable() {
+  const tbody = document.getElementById('employeeTableBody');
+  tbody.innerHTML = '';
+  employeeRows.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--text-muted);font-size:12px;">${i+1}</td>
+      <td><input type="text" value="${esc(row.name)}" placeholder="氏名" oninput="updateRow(${i},'name',this.value)"></td>
+      <td>
+        <select onchange="updateRow(${i},'role',this.value)" style="padding:6px 10px;border-radius:6px;border:1.5px solid var(--border);font-size:13px;">
+          <option value="employee" ${row.role==='employee'?'selected':''}>一般</option>
+          <option value="admin"    ${row.role==='admin'   ?'selected':''}>管理者</option>
+        </select>
+      </td>
+      <td><input type="email" value="${esc(row.email)}" placeholder="任意" oninput="updateRow(${i},'email',this.value)"></td>
+      <td><button class="btn-row-del" title="削除" onclick="delRow(${i})">×</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+window.updateRow = (i, key, val) => { employeeRows[i][key] = val; };
+window.delRow   = (i) => { employeeRows.splice(i,1); renderEmployeeTable(); };
+
+function esc(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+// CSV インポート
+document.getElementById('csvFile').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n').filter(l => l.trim());
+    const added = [];
+    lines.forEach(line => {
+      const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g,''));
+      if (cols.length >= 1 && cols[0]) {
+        added.push({ name: cols[0], role: cols[1] === 'admin' ? 'admin' : 'employee', email: cols[2] || '' });
+      }
+    });
+    employeeRows = added;
+    renderEmployeeTable();
+    document.getElementById('csvStatus').textContent = `${added.length}名 読み込み完了`;
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+
+// ── STEP 3: 確認画面 ──
+window.goStep3 = function() {
+  const valid = employeeRows.some(r => r.name.trim());
+  if (!valid) {
+    alert('少なくとも1名の従業員を登録してください。');
+    return;
+  }
+  renderConfirm();
+  setStep(3);
+};
+
+function renderConfirm() {
+  const empRows = employeeRows.filter(r => r.name.trim())
+    .map((r,i) => `
+      <tr>
+        <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-muted);">${i+1}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px;">${esc(r.name)}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px;">${r.role==='admin'?'管理者':'一般'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-muted);">${esc(r.email)||'-'}</td>
+      </tr>`).join('');
+
+  document.getElementById('confirmContent').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px;">
+      <tr><td style="padding:10px 0;border-bottom:1px solid var(--border);color:var(--text-muted);width:140px;">企業ID</td>
+          <td style="padding:10px 0;border-bottom:1px solid var(--border);font-family:monospace;font-weight:700;">${esc(document.getElementById('companyId').value)}</td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid var(--border);color:var(--text-muted);">企業名</td>
+          <td style="padding:10px 0;border-bottom:1px solid var(--border);">${esc(document.getElementById('companyName').value)}</td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid var(--border);color:var(--text-muted);">管理者名</td>
+          <td style="padding:10px 0;border-bottom:1px solid var(--border);">${esc(document.getElementById('adminName').value)}</td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid var(--border);color:var(--text-muted);">メール</td>
+          <td style="padding:10px 0;border-bottom:1px solid var(--border);">${esc(document.getElementById('adminEmail').value)}</td></tr>
+      <tr><td style="padding:10px 0;color:var(--text-muted);">業種</td>
+          <td style="padding:10px 0;">${esc(document.getElementById('industry').options[document.getElementById('industry').selectedIndex].text)}</td></tr>
+    </table>
+    <p style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px;">従業員（${employeeRows.filter(r=>r.name.trim()).length}名）</p>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr>
+          <th style="padding:10px 12px;background:var(--navy);color:white;text-align:left;font-size:12px;">#</th>
+          <th style="padding:10px 12px;background:var(--navy);color:white;text-align:left;font-size:12px;">氏名</th>
+          <th style="padding:10px 12px;background:var(--navy);color:white;text-align:left;font-size:12px;">役割</th>
+          <th style="padding:10px 12px;background:var(--navy);color:white;text-align:left;font-size:12px;">メール</th>
+        </tr></thead>
+        <tbody>${empRows}</tbody>
+      </table>
+    </div>`;
+}
+
+// ── Firebase 登録 ──
+window.submitRegistration = async function() {
+  const btn     = document.getElementById('submitBtn');
+  const spinner = document.getElementById('submitSpinner');
+  const label   = document.getElementById('submitLabel');
+  const errEl   = document.getElementById('submitError');
+
+  btn.disabled    = true;
+  spinner.style.display = 'block';
+  label.textContent = '登録中...';
+  errEl.classList.remove('show');
+
+  try {
+    const companyId   = document.getElementById('companyId').value.trim();
+    const companyName = document.getElementById('companyName').value.trim();
+    const adminEmail  = document.getElementById('adminEmail').value.trim();
+    const adminName   = document.getElementById('adminName').value.trim();
+    const password    = document.getElementById('adminPassword').value;
+    const industry    = document.getElementById('industry').value;
+    const empCount    = parseInt(document.getElementById('employeeCount').value || '0', 10);
+    const validEmps   = employeeRows.filter(r => r.name.trim());
+
+    // 1. Firebase Auth でユーザー作成
+    const userCred = await createUserWithEmailAndPassword(auth, adminEmail, password);
+    const uid = userCred.user.uid;
+
+    // 2. companies/{companyId} ドキュメント作成
+    const companyRef = doc(db, 'companies', companyId);
+    await setDoc(companyRef, {
+      name:                 companyName,
+      adminEmail,
+      adminName,
+      adminUid:             uid,
+      industry:             industry || null,
+      estimatedEmployees:   empCount  || null,
+      createdAt:            serverTimestamp(),
+      stripeCustomerId:     customerData.stripeCustomerId    || null,
+      stripeSubscriptionId: customerData.stripeSubscriptionId|| null,
+      onboardingCompletedAt: serverTimestamp(),
+    });
+
+    // 3. subscription サブコレクション
+    await setDoc(doc(db, 'companies', companyId, 'settings', 'subscription'), {
+      status:              'trialing',
+      stripeSubscriptionId: customerData.stripeSubscriptionId || null,
+      stripeCustomerId:    customerData.stripeCustomerId       || null,
+      trialEnd:            customerData.trialEnd               || null,
+      users:               customerData.users                  || 1,
+      updatedAt:           serverTimestamp(),
+    });
+
+    // 4. 従業員登録
+    const empCol = collection(db, 'companies', companyId, 'employees');
+    for (const emp of validEmps) {
+      await addDoc(empCol, {
+        name:      emp.name.trim(),
+        role:      emp.role,
+        email:     emp.email.trim() || null,
+        createdAt: serverTimestamp(),
+      });
+    }
+
+    // 5. users/{uid} にロール・companyId を保存
+    await setDoc(doc(db, 'users', uid), {
+      companyId,
+      email: adminEmail,
+      name:  adminName,
+      role:  'admin',
+      createdAt: serverTimestamp(),
+    });
+
+    // 6. saasCustomers のステータスを completed に更新
+    await updateDoc(doc(db, 'saasCustomers', companyId), {
+      onboardingStatus:       'completed',
+      onboardingCompletedAt:  serverTimestamp(),
+    });
+
+    showComplete();
+
+  } catch (e) {
+    console.error(e);
+    let msg = '登録中にエラーが発生しました。もう一度お試しください。';
+    if (e.code === 'auth/email-already-in-use') msg = 'このメールアドレスはすでに登録されています。管理画面からログインしてください。';
+    if (e.code === 'auth/weak-password')        msg = 'パスワードが短すぎます。8文字以上で設定してください。';
+    errEl.textContent = msg;
+    errEl.classList.add('show');
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    label.textContent = '登録を完了する';
+  }
+};
+
+// ── 完了画面 ──
+function showComplete() {
+  [1,2,3].forEach(i => {
+    document.getElementById(`panelStep${i}`).style.display = 'none';
+    document.getElementById(`step${i}`).classList.add('done');
+    document.getElementById(`step${i}`).classList.remove('active');
+  });
+  document.getElementById('panelComplete').style.display = '';
+  document.getElementById('completeCompanyId').textContent = customerData?.customerId || customerData?.id || '-';
+  document.getElementById('completeEmail').textContent     = customerData?.email      || '-';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── 起動 ──
+verifyToken();
+</script>
+</body>
+</html>

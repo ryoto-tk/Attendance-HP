@@ -917,6 +917,26 @@ https://www.attendance1.com/
           trialError.classList.remove('hidden');
           return;
         }
+        // 企業名・企業ID・管理者メールのバリデーション
+        var companyName  = ($('trialCompanyName')  || {}).value  || '';
+        var companyId    = ($('trialCompanyId')    || {}).value  || '';
+        var adminEmail   = ($('trialAdminEmail')   || {}).value  || '';
+        var referrer     = ($('trialReferrer')     || {}).value  || '';
+        if (!companyName.trim()) {
+          trialError.textContent = '企業・店舗名を入力してください。';
+          trialError.classList.remove('hidden');
+          return;
+        }
+        if (!companyId.trim()) {
+          trialError.textContent = '企業IDを入力してください。';
+          trialError.classList.remove('hidden');
+          return;
+        }
+        if (!adminEmail.trim()) {
+          trialError.textContent = 'メールアドレスを入力してください。';
+          trialError.classList.remove('hidden');
+          return;
+        }
         trialError.classList.add('hidden');
         trialBtn.disabled = true;
         trialBtnText.textContent = '処理中...';
@@ -933,7 +953,13 @@ https://www.attendance1.com/
           var res = await fetch('/api/checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ users: n })
+            body: JSON.stringify({
+              users:       n,
+              companyName: companyName.trim(),
+              companyId:   companyId.trim(),
+              adminEmail:  adminEmail.trim(),
+              referrer:    referrer.trim() || undefined,
+            })
           });
           var data = await res.json();
           if (data.url) {
